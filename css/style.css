@@ -306,3 +306,25 @@ h2 {
     padding-bottom: 56px;
   }
 }
+.hero-grid {
+  grid-template-columns: 1.1fr 1fr;
+  align-items: center;
+  gap: 20px;
+}
+
+.hero-pic {
+  width: 100%;
+  max-width: 520px;
+  justify-self: end;
+}
+
+@media (max-width: 800px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-pic {
+    justify-self: center;
+    max-width: 320px;
+  }
+}
