@@ -328,3 +328,9 @@ h2 {
     max-width: 320px;
   }
 }
+
+.wordmark img {
+  height: 36px;
+  width: auto;
+  display: block;
+}
