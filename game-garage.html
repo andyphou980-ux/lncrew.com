@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>GARAGE — LN CREW</title>
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg:#070707; --red:#c4121a; --ink:#f3f1ea; --muted:#9a958a; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--bg); color: var(--ink); font-family: Barlow, sans-serif; overflow: hidden; }
+    .bar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 8;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; background: rgba(7,7,7,.88); border-bottom: 1px solid #2a2a2a;
+    }
+    .bar a { color: inherit; text-decoration: none; }
+    .home-link { color: #9a958a; letter-spacing: .16em; font-size: 11px; text-transform: uppercase; }
+    .home-link:hover { color: #fff; }
+    .mark img { height: 36px; width: auto; display: block; }
+    .overlay-logo { height: 72px; width: auto; margin: 0 auto 16px; display: block; }
+    canvas { display: block; width: 100%; height: 100%; background: #070707; }
+    #hud {
+      position: fixed; left: 14px; right: 14px; top: 52px; z-index: 4;
+      display: none; justify-content: space-between; pointer-events: none;
+      font-family: "Bebas Neue", Impact, sans-serif; letter-spacing: .08em; font-size: 22px;
+    }
+    #hud.show { display: flex; }
+    #hud small { display: block; color: var(--muted); font-family: Barlow, sans-serif; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; }
+    #job {
+      position: fixed; left: 14px; right: 14px; top: 108px; z-index: 4; display: none;
+      background: rgba(8,8,8,.78); border: 1px solid #2a2a2a; padding: 8px 10px; pointer-events: none;
+    }
+    #job.show { display: block; }
+    #job h3 { font-family: "Bebas Neue", Impact, sans-serif; font-size: 20px; letter-spacing: .06em; }
+    #job h3 b { color: var(--red); }
+    #job p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    #timerbar { height: 4px; background: #1a1a1a; margin-top: 8px; }
+    #timerbar > i { display: block; height: 100%; width: 100%; background: var(--red); }
+    #overlay {
+      position: fixed; inset: 0; z-index: 6; display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,.72); text-align: center; padding: 24px;
+    }
+    #overlay.hidden { display: none; }
+    #overlay h1 { font-family: "Bebas Neue", Impact, sans-serif; font-size: clamp(48px, 14vw, 92px); line-height: .85; letter-spacing: .04em; }
+    #overlay h1 em { font-style: normal; color: var(--red); }
+    #overlay p { color: var(--muted); margin: 14px auto 22px; max-width: 340px; }
+    .btn {
+      display: inline-block; border: 1px solid var(--red); color: #fff; background: var(--red);
+      padding: 12px 22px; letter-spacing: .18em; text-transform: uppercase; font-size: 12px; cursor: pointer;
+    }
+    .hint { margin-top: 16px; font-size: 12px; color: #6b675f; }
+    #toast {
+      position: fixed; left: 50%; top: 42%; transform: translate(-50%,-50%); z-index: 7;
+      font-family: "Bebas Neue", Impact, sans-serif; font-size: 34px; letter-spacing: .08em;
+      color: #fff; text-shadow: 0 4px 18px #000; pointer-events: none; opacity: 0;
+    }
+    #tune {
+      position: fixed; left: 14px; right: 14px; bottom: 118px; z-index: 5;
+      background: rgba(8,8,8,.92); border: 1px solid #3a1518; padding: 12px; display: none;
+    }
+    #tune.show { display: block; }
+    #tune .lbl { font-size: 12px; letter-spacing: .16em; color: var(--red); }
+    #tune .track { position: relative; height: 28px; background: #161616; margin: 10px 0 12px; overflow: hidden; }
+    #tune .sweet { position: absolute; top: 0; bottom: 0; background: rgba(196,18,26,.35); border-left: 2px solid var(--red); border-right: 2px solid var(--red); }
+    #tune .needle { position: absolute; top: 0; bottom: 0; width: 3px; background: #f3f1ea; }
+    #bench {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; display: none;
+      padding: 8px 8px 12px; background: linear-gradient(180deg, transparent, #070707 18%);
+    }
+    #bench.show { display: block; }
+    #parts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+    .part {
+      border: 1px solid #2a2a2a; background: #121212; color: var(--ink);
+      font-family: Barlow, sans-serif; font-size: 11px; letter-spacing: .04em;
+      padding: 10px 4px 8px; text-align: center; cursor: pointer; min-height: 58px;
+    }
+    .part.on { border-color: var(--red); background: #2a0c12; color: #fff; }
+    .part .ico { font-size: 16px; display: block; margin-bottom: 3px; color: var(--red); }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <a class="home-link" href="https://lncrew.com/">← Home</a>
+    <a class="mark" href="https://lncrew.com/" title="LN Crew home">
+      <img src="images/ln-logo.png" alt="LN Crew" onerror="this.src='https://lncrew.com/images/ln-logo.png'" />
+    </a>
+    <a class="home-link" href="#" id="muteBtn" style="text-align:right">Sound on</a>
+  </div>
+  <div id="hud">
+    <div><small>Cash</small>$<span id="cash">0</span></div>
+    <div style="text-align:center"><small>Job</small><span id="jobn">1</span>/6</div>
+    <div style="text-align:right"><small>Best</small>$<span id="best">0</span></div>
+  </div>
+  <div id="job">
+    <h3 id="carName">S14</h3>
+    <p id="jobTxt">—</p>
+    <div id="timerbar"><i id="tfill"></i></div>
+  </div>
+  <div id="toast"></div>
+  <div id="tune">
+    <div class="lbl" id="tuneLbl">BOOST TUNE</div>
+    <div class="track">
+      <div class="sweet" id="sweet"></div>
+      <div class="needle" id="needle"></div>
+    </div>
+    <button class="btn" id="tuneHit" style="width:100%">Lock it</button>
+  </div>
+  <div id="bench"><div id="parts"></div></div>
+  <div id="overlay">
+    <div>
+      <img class="overlay-logo" src="images/ln-logo.png" alt="LN Crew" onerror="this.src='https://lncrew.com/images/ln-logo.png'" />
+      <h1>FIX IT<br />MOD IT<br /><em>SEND IT</em></h1>
+      <p>Cars pull up cooked. You bolt the right parts, hit the tune, don’t send junk.</p>
+      <button class="btn" id="startBtn">Open the bay</button>
+      <p class="hint">tap a part · tap the zone on the car · then lock the tune</p>
+    </div>
+  </div>
+  <canvas id="c"></canvas>
+  <script>
+  (() => {
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
+    const overlay = document.getElementById("overlay");
+    const startBtn = document.getElementById("startBtn");
+    const hud = document.getElementById("hud");
+    const jobBox = document.getElementById("job");
+    const bench = document.getElementById("bench");
+    const partsEl = document.getElementById("parts");
+    const toast = document.getElementById("toast");
+    const tuneBox = document.getElementById("tune");
+    const sweet = document.getElementById("sweet");
+    const needle = document.getElementById("needle");
+    const LOGO = "images/ln-logo.png";
+    const LOGO_FB = "https://lncrew.com/images/ln-logo.png";
+    const BEST_KEY = "lncrew_garage_best";
+    let best = Number(localStorage.getItem(BEST_KEY) || 0);
+    document.getElementById("best").textContent = String(best);
+
+    const sfx = {
+      ctx: null, muted: false,
+      unlock() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === "suspended") this.ctx.resume(); },
+      beep(freq, dur, type, gain) {
+        if (this.muted || !this.ctx) return;
+        const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+        o.type = type || "square"; o.frequency.value = freq;
+        g.gain.setValueAtTime(gain || 0.08, this.ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+        o.connect(g); g.connect(this.ctx.destination); o.start(); o.stop(this.ctx.currentTime + dur);
+      },
+      wrench() { this.beep(180, 0.06); this.beep(320, 0.08); },
+      wrong() { this.beep(110, 0.18, "sawtooth", 0.08); },
+      cash() { this.beep(520, 0.08); this.beep(740, 0.12); },
+      lock() { this.beep(440, 0.1, "triangle", 0.07); }
+    };
+    document.getElementById("muteBtn").addEventListener("click", (e) => {
+      e.preventDefault();
+      sfx.muted = !sfx.muted;
+      e.currentTarget.textContent = sfx.muted ? "Sound off" : "Sound on";
+    });
+
+    let W = 420, H = 780, dpr = 1;
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    const CATALOG = [
+      { id:"turbo", name:"T3 TURBO", ico:"◉", slot:"engine" },
+      { id:"manifold", name:"ELBOW", ico:"∟", slot:"engine" },
+      { id:"coils", name:"COILOVERS", ico:"∥", slot:"susp" },
+      { id:"arms", name:"LCA ARMS", ico:"⋀", slot:"susp" },
+      { id:"wheels", name:"TE37s", ico:"⊕", slot:"wheels" },
+      { id:"tires", name:"NT05s", ico:"○", slot:"wheels" },
+      { id:"pads", name:"PADS", ico:"▣", slot:"brakes" },
+      { id:"lines", name:"SS LINES", ico:"≈", slot:"brakes" },
+      { id:"lip", name:"FRONT LIP", ico:"▾", slot:"body" },
+      { id:"wing", name:"TRUNK WING", ico:"▬", slot:"body" },
+      { id:"ecu", name:"PIGGYBACK", ico:"▦", slot:"tune" },
+      { id:"waste", name:"WASTEGATE", ico:"◎", slot:"engine" },
+      { id:"intake", name:"SHORT RAM", ico:"S", slot:"engine" },
+      { id:"camber", name:"CAMBER KIT", ico:"∠", slot:"susp" },
+      { id:"rotors", name:"SLOTTED", ico:"⊗", slot:"brakes" },
+      { id:"wrap", name:"LN WRAP", ico:"LN", slot:"body" }
+    ];
+    const BUILDS = [
+      { name:"S14 KOUKI", kind:"s14", color:["#c4121a","#5a0a14"], jobs:[["engine","boost leak — turbo’s cooked"],["brakes","pads glazed"],["susp","needs drop"]] },
+      { name:"R32 GT-R", kind:"r32", color:["#d6d0c6","#6a6660"], jobs:[["engine","stock snail gotta go"],["wheels","curbed factory steels"],["body","needs the wing"]] },
+      { name:"FD RX-7", kind:"fd", color:["#1a1c20","#0a0a0a"], jobs:[["engine","apex seals begging"],["tune","map’s a mess"],["susp","sits too tall"]] },
+      { name:"Z32 TT", kind:"z32", color:["#2c4a6e","#142232"], jobs:[["brakes","cooked rotors"],["wheels","need real shoes"],["body","lip smashed"]] },
+      { name:"EG HATCH", kind:"eg", color:["#e8e2d6","#8a8480"], jobs:[["susp","bagged wrong"],["engine","needs pull"],["body","LN wrap that lid"]] },
+      { name:"180SX", kind:"180", color:["#3a2a12","#1a1208"], jobs:[["tune","running pig rich"],["brakes","lines swelling"],["wheels","TE37s or stay home"]] }
+    ];
+    const SLOTS = {
+      engine: { x: 0.5, y: 0.38, r: 0.08, label:"ENGINE" },
+      susp:   { x: 0.28, y: 0.52, r: 0.07, label:"SUSP" },
+      brakes: { x: 0.72, y: 0.52, r: 0.07, label:"BRAKES" },
+      wheels: { x: 0.28, y: 0.62, r: 0.07, label:"WHEELS" },
+      body:   { x: 0.72, y: 0.62, r: 0.07, label:"BODY" },
+      tune:   { x: 0.5, y: 0.47, r: 0.07, label:"ECU" }
+    };
+    const pick = a => a[(Math.random()*a.length)|0];
+    const clamp = (v,a,b) => Math.max(a, Math.min(b,v));
+
+    const S = { screen:"menu", cash:0, jobI:0, time:1, timeMax:1, car:null, needed:[], done:{}, selected:null, tune:null, shift:6, busy:false, last:0 };
+
+    const logoImg = new Image();
+    logoImg.src = LOGO;
+    logoImg.onerror = () => { logoImg.src = LOGO_FB; };
+    function drawLogo(x,y,w){
+      if(!logoImg.complete || !logoImg.naturalWidth) return;
+      const h = w * (logoImg.naturalHeight / logoImg.naturalWidth);
+      ctx.drawImage(logoImg, x-w/2, y-h/2, w, h);
+    }
+
+    function showToast(t){
+      toast.textContent = t; toast.style.opacity = "1";
+      clearTimeout(showToast._id);
+      showToast._id = setTimeout(() => toast.style.opacity = "0", 800);
+    }
+    function partsForJob(needed){
+      const must = needed.map(n => pick(CATALOG.filter(p => p.slot === n.slot)));
+      const decoy = [];
+      while (decoy.length < 4) {
+        const p = pick(CATALOG);
+        if (!must.find(m => m.id === p.id) && !decoy.find(d => d.id === p.id)) decoy.push(p);
+      }
+      return must.concat(decoy).sort(() => Math.random() - 0.5);
+    }
+    function nextJob(){
+      S.busy = false;
+      if (S.jobI >= S.shift) { endShift(); return; }
+      const build = BUILDS[S.jobI % BUILDS.length];
+      const jobs = build.jobs.slice(0, 3 + (S.jobI > 2 ? 1 : 0));
+      S.car = { ...build, x: W + 80, inX: W * 0.5 };
+      S.needed = jobs.map(j => ({ slot: j[0], txt: j[1], done: false }));
+      S.done = {}; S.selected = null; S.tune = null;
+      S.timeMax = 22 - Math.min(8, S.jobI * 1.2); S.time = S.timeMax;
+      tuneBox.classList.remove("show");
+      document.getElementById("carName").innerHTML = build.name + " <b>BAY " + (S.jobI + 1) + "</b>";
+      document.getElementById("jobTxt").textContent = jobs.map(j => j[1]).join(" · ");
+      document.getElementById("jobn").textContent = String(S.jobI + 1);
+      partsEl.innerHTML = "";
+      partsForJob(S.needed).forEach(p => {
+        const b = document.createElement("button");
+        b.className = "part";
+        b.innerHTML = '<span class="ico">' + p.ico + "</span>" + p.name;
+        b.onclick = () => {
+          if (S.screen !== "play" || S.tune) return;
+          S.selected = p;
+          [...partsEl.children].forEach(el => el.classList.toggle("on", el === b));
+        };
+        partsEl.appendChild(b);
+      });
+      bench.classList.add("show");
+    }
+    function startShift(){
+      sfx.unlock();
+      S.screen = "play"; S.cash = 0; S.jobI = 0;
+      overlay.classList.add("hidden");
+      hud.classList.add("show");
+      jobBox.classList.add("show");
+      document.getElementById("cash").textContent = "0";
+      nextJob();
+    }
+    function payday(mult){
+      const tip = Math.floor((180 + S.jobI * 40) * (S.time / S.timeMax) * mult);
+      S.cash += tip;
+      document.getElementById("cash").textContent = String(S.cash);
+      showToast("+$" + tip); sfx.cash();
+      S.jobI++;
+      setTimeout(nextJob, 700);
+    }
+    function failJob(why){
+      if (S.busy) return;
+      S.busy = true;
+      showToast(why); sfx.wrong();
+      S.jobI++;
+      setTimeout(nextJob, 800);
+    }
+    function endShift(){
+      S.screen = "done";
+      if (S.cash > best) { best = S.cash; localStorage.setItem(BEST_KEY, String(best)); }
+      document.getElementById("best").textContent = String(best);
+      bench.classList.remove("show");
+      hud.classList.remove("show");
+      jobBox.classList.remove("show");
+      tuneBox.classList.remove("show");
+      overlay.classList.remove("hidden");
+      overlay.querySelector("h1").innerHTML = "SHIFT<br />DONE<br /><em>$" + S.cash + "</em>";
+      overlay.querySelector("p").textContent = S.cash >= 900
+        ? "Pack’s rolling cleaner. You actually wrench."
+        : "Some cars left half-done. Crew clocks that.";
+      startBtn.textContent = "Run it back";
+    }
+    function openTune(){
+      const kinds = [
+        { name:"BOOST TUNE", sweet:.62, w:.14 },
+        { name:"ALIGNMENT", sweet:.48, w:.12 },
+        { name:"AFR LOCK", sweet:.55, w:.11 }
+      ];
+      S.tune = { ...pick(kinds), pos: 0, dir: 1, speed: 0.018 + S.jobI * 0.003 };
+      document.getElementById("tuneLbl").textContent = S.tune.name;
+      sweet.style.left = (S.tune.sweet * 100) + "%";
+      sweet.style.width = (S.tune.w * 100) + "%";
+      sweet.style.transform = "translateX(-50%)";
+      tuneBox.classList.add("show");
+    }
+    document.getElementById("tuneHit").onclick = () => {
+      if (!S.tune) return;
+      const hit = Math.abs(S.tune.pos - S.tune.sweet) <= S.tune.w / 2;
+      tuneBox.classList.remove("show");
+      S.tune = null;
+      sfx.lock();
+      payday(hit ? 1.35 : 0.7);
+    };
+    startBtn.onclick = startShift;
+
+    canvas.addEventListener("pointerdown", e => {
+      if (S.screen !== "play" || S.tune || !S.selected) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+      for (const need of S.needed) {
+        if (need.done) continue;
+        const sl = SLOTS[need.slot];
+        const dx = x - sl.x, dy = y - sl.y;
+        if (dx * dx + dy * dy <= (sl.r + 0.04) * (sl.r + 0.04)) {
+          if (S.selected.slot === need.slot) {
+            need.done = true;
+            S.done[need.slot] = S.selected.id;
+            showToast(S.selected.name + " ON");
+            sfx.wrench();
+            S.selected = null;
+            [...partsEl.children].forEach(el => el.classList.remove("on"));
+            if (S.needed.every(n => n.done)) openTune();
+          } else {
+            S.time -= 3;
+            showToast("WRONG PART");
+            sfx.wrong();
+          }
+          return;
+        }
+      }
+    });
+
+    function bodyPath(w, h) {
+      const hw = w / 2, hh = h / 2;
+      ctx.beginPath();
+      ctx.moveTo(-hw + 8, hh - 5); ctx.lineTo(-hw, hh - 26); ctx.lineTo(-hw + 6, -hh + 32);
+      ctx.lineTo(-hw + 16, -hh + 7); ctx.lineTo(hw - 16, -hh + 7); ctx.lineTo(hw - 6, -hh + 32);
+      ctx.lineTo(hw, hh - 26); ctx.lineTo(hw - 8, hh - 5); ctx.closePath();
+    }
+    function drawCar() {
+      if (!S.car) return;
+      const x = S.car.x, y = H * 0.54, w = Math.min(78, W * 0.18), h = w * 2.15;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = "rgba(0,0,0,.5)";
+      ctx.beginPath(); ctx.ellipse(0, 10, w * 0.5, h * 0.46, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = S.car.color[0]; bodyPath(w, h); ctx.fill();
+      ctx.fillStyle = S.car.color[1]; ctx.fillRect(-w / 2 + 8, -20, w - 16, 18);
+      ctx.fillStyle = "#151c24"; ctx.fillRect(-w / 2 + 14, -h / 2 + 18, w - 28, 28);
+      ctx.fillStyle = "#c4121a"; ctx.fillRect(-16, h / 2 - 10, 32, 6);
+      ctx.restore();
+      if (S.done.body === "wrap") drawLogo(x, y - 8, 36);
+    }
+    function drawSlots() {
+      for (const need of S.needed) {
+        const sl = SLOTS[need.slot];
+        const x = sl.x * W, y = sl.y * H, r = sl.r * Math.min(W, H);
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = need.done ? "rgba(196,18,26,.28)" : "rgba(243,241,234,.08)"; ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = need.done ? "#c4121a" : (S.selected && S.selected.slot === need.slot ? "#f3f1ea" : "#4a4a4a");
+        ctx.stroke();
+        ctx.fillStyle = need.done ? "#c4121a" : "#9a958a";
+        ctx.font = "10px Barlow"; ctx.textAlign = "center";
+        ctx.fillText(need.done ? "SET" : sl.label, x, y + 4);
+      }
+    }
+
+    function loop(now) {
+      requestAnimationFrame(loop);
+      const dt = Math.min(0.05, S.last ? (now - S.last) / 1000 : 0.016);
+      S.last = now;
+      ctx.fillStyle = "#0c0d10"; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = "#1a1210"; ctx.fillRect(0, H * 0.16, W, 12);
+      ctx.fillStyle = "rgba(255,210,140,.08)";
+      ctx.fillRect(W * 0.08, H * 0.24, W * 0.34, H * 0.36);
+      ctx.fillRect(W * 0.58, H * 0.24, W * 0.34, H * 0.36);
+      ctx.fillStyle = "#e8b56a";
+      ctx.fillRect(W * 0.14, H * 0.22, W * 0.2, 6);
+      ctx.fillRect(W * 0.64, H * 0.22, W * 0.2, 6);
+      ctx.fillStyle = "#0e0e0e"; ctx.fillRect(0, H * 0.70, W, H);
+      ctx.strokeStyle = "rgba(196,18,26,.35)";
+      ctx.strokeRect(W * 0.12, H * 0.72, W * 0.76, H * 0.08);
+      ctx.fillStyle = "#9a958a"; ctx.font = "11px Barlow"; ctx.textAlign = "left";
+      ctx.fillText("BAY 01  ·  LATE NIGHT", 16, 76);
+      ctx.fillStyle = "rgba(0,0,0,0.45)"; ctx.fillRect(0, H - 36, W, 36);
+      ctx.fillStyle = "#9a958a"; ctx.font = "11px Barlow"; ctx.textAlign = "center";
+      ctx.fillText("LN CREW  ·  STREETS N' TRAILS", W / 2, H - 14);
+
+      if (S.screen !== "play" || !S.car) return;
+      S.car.x += (S.car.inX - S.car.x) * 0.08;
+      if (!S.tune && S.needed.some(n => !n.done)) {
+        S.time -= dt;
+        if (S.time <= 0) { S.time = 0; failJob("TOOK TOO LONG"); }
+      }
+      const pct = clamp(S.time / S.timeMax, 0, 1);
+      document.getElementById("tfill").style.width = (pct * 100) + "%";
+      document.getElementById("tfill").style.background = pct < 0.25 ? "#e31b24" : "#c4121a";
+      if (S.tune) {
+        S.tune.pos += S.tune.dir * S.tune.speed * (dt * 60);
+        if (S.tune.pos > 1) { S.tune.pos = 1; S.tune.dir = -1; }
+        if (S.tune.pos < 0) { S.tune.pos = 0; S.tune.dir = 1; }
+        needle.style.left = (S.tune.pos * 100) + "%";
+      }
+      drawCar();
+      drawSlots();
+    }
+    requestAnimationFrame(loop);
+  })();
+  </script>
+</body>
+</html>
